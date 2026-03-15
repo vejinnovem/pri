@@ -3,10 +3,34 @@
 declare(strict_types=1);
 
 // Funkcje pomocnicze warstwy prezentacji i widoków (layout, selecty, etykiety).
+function render_primary_navigation_links(): void
+{
+    ?>
+    <a class="nav-pill" href="index.php">Dashboard</a>
+    <a class="nav-pill" href="index.php?page=equipment-list">Sprzęt</a>
+    <?php if (can_manage_settings()): ?>
+        <a class="nav-pill" href="index.php?page=settings">Konfiguracja</a>
+        <a class="nav-pill" href="index.php?page=locations">Lokalizacje</a>
+    <?php endif; ?>
+    <?php if (can_view_audit_history()): ?>
+        <a class="nav-pill" href="index.php?page=audit-log">Historia zdarzeń</a>
+    <?php endif; ?>
+    <?php if (can_manage_dictionaries()): ?>
+        <a class="nav-pill" href="index.php?page=dictionaries">Słowniki</a>
+    <?php endif; ?>
+    <?php if (can_manage_roles()): ?>
+        <a class="nav-pill" href="index.php?page=roles">Role</a>
+    <?php endif; ?>
+    <?php if (can_manage_users()): ?>
+        <a class="nav-pill" href="index.php?page=users">Użytkownicy</a>
+    <?php endif;
+}
+
 function render_header(string $title): void
 {
     $user = current_user();
     $appTitle = app_config('app_title');
+    $styleVersion = (string) (@filemtime(__DIR__ . '/../assets/style.css') ?: time());
     $deadlineIso = (string) app_setting('festival_deadline', app_config('festival_deadline'));
     $deadlineCard = null;
     if ($deadlineIso) {
@@ -27,7 +51,7 @@ function render_header(string $title): void
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= h($title) ?> | <?= h($appTitle) ?></title>
-        <link rel="stylesheet" href="assets/style.css">
+        <link rel="stylesheet" href="assets/style.css?v=<?= h($styleVersion) ?>">
     </head>
     <body>
     <main class="shell">
@@ -53,32 +77,30 @@ function render_header(string $title): void
                     <div><a class="nav-pill" href="index.php?page=change-password">Zmień hasło</a></div>
                 </div>
             </div>
-            <nav class="topbar">
+            <nav class="topbar desktop-topbar">
                 <div class="actions">
-                    <a class="nav-pill" href="index.php">Dashboard</a>
-                    <a class="nav-pill" href="index.php?page=equipment-list">Sprzęt</a>
-                    <?php if (can_manage_settings()): ?>
-                        <a class="nav-pill" href="index.php?page=settings">Konfiguracja</a>
-                        <a class="nav-pill" href="index.php?page=locations">Lokalizacje</a>
-                    <?php endif; ?>
-                    <?php if (can_view_audit_history()): ?>
-                        <a class="nav-pill" href="index.php?page=audit-log">Historia zdarzeń</a>
-                    <?php endif; ?>
-                    <?php if (can_manage_dictionaries()): ?>
-                        <a class="nav-pill" href="index.php?page=dictionaries">Słowniki</a>
-                    <?php endif; ?>
-                    <?php if (can_manage_roles()): ?>
-                        <a class="nav-pill" href="index.php?page=roles">Role</a>
-                    <?php endif; ?>
-                    <?php if (can_manage_users()): ?>
-                        <a class="nav-pill" href="index.php?page=users">Użytkownicy</a>
-                    <?php endif; ?>
+                    <?php render_primary_navigation_links(); ?>
                 </div>
                 <form method="post" action="index.php?page=logout" class="inline-form">
                     <?= csrf_field() ?>
                     <button class="nav-pill" type="submit">Wyloguj</button>
                 </form>
             </nav>
+            <details class="mobile-nav">
+                <summary class="nav-pill">Menu i konto</summary>
+                <div class="mobile-nav-panel">
+                    <div class="actions">
+                        <?php render_primary_navigation_links(); ?>
+                    </div>
+                    <div class="mobile-nav-account">
+                        <a class="nav-pill" href="index.php?page=change-password">Zmień hasło</a>
+                        <form method="post" action="index.php?page=logout" class="inline-form">
+                            <?= csrf_field() ?>
+                            <button class="nav-pill" type="submit">Wyloguj</button>
+                        </form>
+                    </div>
+                </div>
+            </details>
         </section>
     <?php endif;
 

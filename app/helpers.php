@@ -275,6 +275,7 @@ function audit_action_label(string $action): string
     return match ($action) {
         'create_equipment' => 'Dodano rekord sprzętu',
         'update_equipment' => 'Zaktualizowano rekord sprzętu',
+        'refresh_qr_token' => 'Odświeżono token QR',
         'upload_image' => 'Dodano zdjęcie',
         'delete_image' => 'Usunięto zdjęcie',
         'create_task' => 'Dodano zadanie',

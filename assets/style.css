@@ -141,6 +141,10 @@ p {
     margin-bottom: 18px;
 }
 
+.mobile-nav {
+    display: none;
+}
+
 .topbar > *,
 .split > *,
 .qr-block > *,
@@ -617,16 +621,13 @@ code, pre {
     .qr-block,
     .label-card { grid-template-columns: 1fr; }
     .shell { width: min(100% - 18px, 1000px); margin-top: 14px; }
-    .hero { padding: 22px; }
+    .hero { padding: 18px; }
+    .hero-head { gap: 14px; }
     .hero-user {
         justify-items: stretch;
     }
-    .topbar {
-        align-items: stretch;
-    }
     .topbar,
     .actions,
-    .stats,
     .grid {
         flex-direction: column;
     }
@@ -642,8 +643,109 @@ code, pre {
     .countdown-card {
         min-width: 0;
     }
+    .desktop-topbar {
+        display: none;
+    }
+    .mobile-nav {
+        display: block;
+        margin-top: 8px;
+    }
+    .mobile-nav summary {
+        list-style: none;
+    }
+    .mobile-nav summary::-webkit-details-marker {
+        display: none;
+    }
+    .mobile-nav > summary.nav-pill {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+    }
+    .mobile-nav[open] > summary.nav-pill {
+        margin-bottom: 10px;
+    }
+    .mobile-nav-panel {
+        display: grid;
+        gap: 10px;
+    }
+    .mobile-nav-panel .actions,
+    .mobile-nav-account {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .mobile-nav-panel .nav-pill,
+    .mobile-nav-panel .button,
+    .mobile-nav-panel .inline-form,
+    .mobile-nav-panel .inline-form .nav-pill {
+        width: 100%;
+    }
+    .mobile-nav-panel .nav-pill,
+    .mobile-nav-panel .button {
+        justify-content: center;
+        min-height: 42px;
+        padding: 9px 12px;
+        font-size: 0.94rem;
+    }
+    .stats.panel {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .stats .card {
+        min-width: 0;
+        padding: 14px;
+    }
+    .stats strong {
+        font-size: 1.6rem;
+        margin-bottom: 6px;
+    }
+    .stat-hint {
+        margin-top: 8px;
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
     th, td {
         padding: 12px 8px;
+    }
+}
+
+@media (max-width: 520px) {
+    .hero h1 {
+        font-size: clamp(1.9rem, 8vw, 2.6rem);
+    }
+    .mobile-nav-panel .actions,
+    .mobile-nav-account {
+        grid-template-columns: 1fr;
+    }
+    .mobile-nav-panel .nav-pill,
+    .mobile-nav-panel .button {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    .stats.panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 14px;
+    }
+    .stats .card {
+        padding: 12px;
+        border-radius: 16px;
+    }
+    .stats strong {
+        font-size: 1.35rem;
+        margin-bottom: 4px;
+    }
+    .stat-hint {
+        margin-top: 6px;
+        font-size: 0.72rem;
+        line-height: 1.25;
+    }
+}
+
+@media (max-width: 360px) {
+    .stats.panel {
+        grid-template-columns: 1fr;
     }
 }
 

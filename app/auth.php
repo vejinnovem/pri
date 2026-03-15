@@ -17,6 +17,40 @@ function attempt_login(string $username, string $password): bool
     return true;
 }
 
+function remember_post_login_redirect(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+        return;
+    }
+
+    $requestUri = trim((string) ($_SERVER['REQUEST_URI'] ?? ''));
+    if ($requestUri === '' || str_contains($requestUri, "\r") || str_contains($requestUri, "\n")) {
+        return;
+    }
+
+    if (str_contains($requestUri, 'page=login')) {
+        return;
+    }
+
+    $_SESSION['post_login_redirect'] = $requestUri;
+}
+
+function consume_post_login_redirect(): string
+{
+    $target = trim((string) ($_SESSION['post_login_redirect'] ?? ''));
+    unset($_SESSION['post_login_redirect']);
+
+    if ($target === '' || str_contains($target, "\r") || str_contains($target, "\n") || str_contains($target, 'page=login')) {
+        return 'index.php';
+    }
+
+    if (preg_match('#^https?://#i', $target)) {
+        return 'index.php';
+    }
+
+    return $target;
+}
+
 function logout_user(): void
 {
     if (!empty($_SESSION['user_id'])) {
@@ -50,6 +84,7 @@ function current_user(): ?array
 function require_login(): void
 {
     if (!current_user()) {
+        remember_post_login_redirect();
         flash('error', 'Zaloguj sie, aby kontynuowac.');
         redirect_to('index.php?page=login');
     }

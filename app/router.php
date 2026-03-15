@@ -17,7 +17,7 @@ if ($page === 'login') {
         $password = (string) ($_POST['password'] ?? '');
         if (attempt_login($username, $password)) {
             flash('success', 'Zalogowano.');
-            redirect_to('index.php');
+            redirect_to(consume_post_login_redirect());
         }
         flash('error', 'Nieprawidłowy login lub hasło.');
         redirect_to('index.php?page=login');
@@ -1823,6 +1823,39 @@ if ($page === 'task-delete') {
     redirect_to('index.php?page=item&id=' . (int) $task['equipment_id']);
 }
 
+if ($page === 'equipment-refresh-qr') {
+    require_editor();
+    if (!is_post()) {
+        redirect_to('index.php?page=equipment-list');
+    }
+    verify_csrf();
+
+    $equipmentId = (int) ($_POST['equipment_id'] ?? 0);
+    $equipment = query_one('SELECT id, inventory_code, qr_token FROM equipment WHERE id = :id', ['id' => $equipmentId]);
+    if (!$equipment) {
+        flash('error', 'Nie znaleziono sprzętu.');
+        redirect_to('index.php?page=equipment-list');
+    }
+
+    $newToken = strtolower(bin2hex(random_bytes(8)));
+    execute_sql(
+        'UPDATE equipment SET qr_token = :qr_token, updated_by = :updated_by WHERE id = :id',
+        [
+            'qr_token' => $newToken,
+            'updated_by' => (int) current_user()['id'],
+            'id' => $equipmentId,
+        ]
+    );
+
+    audit_log((int) current_user()['id'], 'equipment', $equipmentId, 'refresh_qr_token', [
+        'inventory_code' => $equipment['inventory_code'],
+        'previous_qr_token' => $equipment['qr_token'],
+        'new_qr_token' => $newToken,
+    ]);
+    flash('success', 'Wygenerowano nowy kod QR. Stare etykiety przestaną działać.');
+    redirect_to('index.php?page=item&id=' . $equipmentId);
+}
+
 if ($page === 'item-label') {
     $item = query_one(
         'SELECT e.*, c.name AS category_name, l.name AS location_name, lp.name AS place_name
@@ -2752,7 +2785,15 @@ if ($page === 'item') {
                         <div><a href="<?= h($qrUrl) ?>"><?= h($qrUrl) ?></a></div>
                         <div class="actions" style="margin-top: 14px;">
                             <a class="button" href="index.php?page=item-label&id=<?= (int) $item['id'] ?>" target="_blank" rel="noopener">Drukuj etykietę</a>
+                            <?php if (can_edit_records()): ?>
+                                <form method="post" action="index.php?page=equipment-refresh-qr" class="inline-form" onsubmit="return confirm('Wygenerować nowy kod QR? Stare etykiety przestaną działać.');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="equipment_id" value="<?= (int) $item['id'] ?>">
+                                    <button class="button" type="submit">Odśwież kod QR</button>
+                                </form>
+                            <?php endif; ?>
                         </div>
+                        <p class="muted" style="margin-top: 12px;">Odświeżenie QR zmienia adres w kodzie. Użyj tej opcji po świadomej wymianie etykiety lub unieważnieniu starej.</p>
                     </div>
                 </div>
             </section>
