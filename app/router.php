@@ -573,6 +573,8 @@ if ($page === 'roles') {
             'can_manage_settings',
             'can_manage_dictionaries',
             'can_view_audit_history',
+            'can_export_csv',
+            'can_import_csv',
         ];
 
         if ($action === 'create-role') {
@@ -600,8 +602,8 @@ if ($page === 'roles') {
             }
             try {
                 execute_sql(
-                    'INSERT INTO roles (name, slug, sort_order, can_manage_users, can_manage_roles, can_manage_root_roles, can_edit_records, can_upload_images, can_delete_images, can_create_tasks, can_update_tasks, can_change_task_status, can_delete_tasks, can_manage_settings, can_manage_dictionaries, can_view_audit_history, is_system)
-                     VALUES (:name, :slug, :sort_order, :can_manage_users, :can_manage_roles, :can_manage_root_roles, :can_edit_records, :can_upload_images, :can_delete_images, :can_create_tasks, :can_update_tasks, :can_change_task_status, :can_delete_tasks, :can_manage_settings, :can_manage_dictionaries, :can_view_audit_history, :is_system)',
+                    'INSERT INTO roles (name, slug, sort_order, can_manage_users, can_manage_roles, can_manage_root_roles, can_edit_records, can_upload_images, can_delete_images, can_create_tasks, can_update_tasks, can_change_task_status, can_delete_tasks, can_manage_settings, can_manage_dictionaries, can_view_audit_history, can_export_csv, can_import_csv, is_system)
+                     VALUES (:name, :slug, :sort_order, :can_manage_users, :can_manage_roles, :can_manage_root_roles, :can_edit_records, :can_upload_images, :can_delete_images, :can_create_tasks, :can_update_tasks, :can_change_task_status, :can_delete_tasks, :can_manage_settings, :can_manage_dictionaries, :can_view_audit_history, :can_export_csv, :can_import_csv, :is_system)',
                     $payload
                 );
             } catch (PDOException $exception) {
@@ -624,6 +626,10 @@ if ($page === 'roles') {
                 flash('error', 'Tylko Root SuperAdmin może zmieniać role z uprawnieniem root.');
                 redirect_to('index.php?page=roles');
             }
+            if ((int) ($role['can_manage_root_roles'] ?? 0) === 1) {
+                flash('error', 'Rola Root SuperAdmin jest niemodyfikowalna.');
+                redirect_to('index.php?page=roles');
+            }
             $payload = [
                 'slug' => $roleSlug,
                 'name' => $name !== '' ? $name : (string) $role['name'],
@@ -637,7 +643,7 @@ if ($page === 'roles') {
                 $payload['can_upload_images'] = 1;
             }
             execute_sql(
-                'UPDATE roles SET name = :name, sort_order = :sort_order, can_manage_users = :can_manage_users, can_manage_roles = :can_manage_roles, can_manage_root_roles = :can_manage_root_roles, can_edit_records = :can_edit_records, can_upload_images = :can_upload_images, can_delete_images = :can_delete_images, can_create_tasks = :can_create_tasks, can_update_tasks = :can_update_tasks, can_change_task_status = :can_change_task_status, can_delete_tasks = :can_delete_tasks, can_manage_settings = :can_manage_settings, can_manage_dictionaries = :can_manage_dictionaries, can_view_audit_history = :can_view_audit_history WHERE slug = :slug',
+                'UPDATE roles SET name = :name, sort_order = :sort_order, can_manage_users = :can_manage_users, can_manage_roles = :can_manage_roles, can_manage_root_roles = :can_manage_root_roles, can_edit_records = :can_edit_records, can_upload_images = :can_upload_images, can_delete_images = :can_delete_images, can_create_tasks = :can_create_tasks, can_update_tasks = :can_update_tasks, can_change_task_status = :can_change_task_status, can_delete_tasks = :can_delete_tasks, can_manage_settings = :can_manage_settings, can_manage_dictionaries = :can_manage_dictionaries, can_view_audit_history = :can_view_audit_history, can_export_csv = :can_export_csv, can_import_csv = :can_import_csv WHERE slug = :slug',
                 $payload
             );
             refresh_role_cache();
@@ -660,6 +666,10 @@ if ($page === 'roles') {
                 flash('error', 'Tylko Root SuperAdmin może usuwać role z uprawnieniem root.');
                 redirect_to('index.php?page=roles');
             }
+            if ((int) ($role['can_manage_root_roles'] ?? 0) === 1) {
+                flash('error', 'Rola Root SuperAdmin jest niemodyfikowalna.');
+                redirect_to('index.php?page=roles');
+            }
             $inUse = (int) (query_one('SELECT COUNT(*) AS total FROM users WHERE role = :role', ['role' => $roleSlug])['total'] ?? 0);
             if ($inUse > 0) {
                 flash('error', 'Nie można usunąć roli, dopóki jest przypisana do użytkowników.');
@@ -677,7 +687,7 @@ if ($page === 'roles') {
         'SELECT r.*, COUNT(u.id) AS users_count
          FROM roles r
          LEFT JOIN users u ON u.role = r.slug
-         GROUP BY r.id, r.name, r.slug, r.sort_order, r.can_manage_users, r.can_manage_roles, r.can_manage_root_roles, r.can_edit_records, r.can_upload_images, r.can_delete_images, r.can_create_tasks, r.can_update_tasks, r.can_change_task_status, r.can_delete_tasks, r.can_manage_settings, r.can_manage_dictionaries, r.can_view_audit_history, r.is_system, r.created_at
+         GROUP BY r.id, r.name, r.slug, r.sort_order, r.can_manage_users, r.can_manage_roles, r.can_manage_root_roles, r.can_edit_records, r.can_upload_images, r.can_delete_images, r.can_create_tasks, r.can_update_tasks, r.can_change_task_status, r.can_delete_tasks, r.can_manage_settings, r.can_manage_dictionaries, r.can_view_audit_history, r.can_export_csv, r.can_import_csv, r.is_system, r.created_at
          ORDER BY r.sort_order, r.name'
     );
 
@@ -694,6 +704,8 @@ if ($page === 'roles') {
         'can_manage_settings' => 'Konfiguracja i lokalizacje',
         'can_manage_dictionaries' => 'Słowniki',
         'can_view_audit_history' => 'Historia zdarzeń',
+        'can_export_csv' => 'Eksport CSV sprzętu',
+        'can_import_csv' => 'Import CSV sprzętu',
     ];
 
     render_header('Role');
@@ -703,7 +715,8 @@ if ($page === 'roles') {
             <h2>Role</h2>
             <p class="muted">Każda rola ma zawsze dostęp tylko do odczytu sprzętu, zdjęć, historii i zadań. Poniżej są wyłącznie uprawnienia dodatkowe.</p>
             <?php foreach ($roles as $role): ?>
-                <?php $canEditRole = ((int) ($role['can_manage_root_roles'] ?? 0) !== 1) || can_manage_root_roles(); ?>
+                <?php $isImmutableRootRole = (int) ($role['can_manage_root_roles'] ?? 0) === 1; ?>
+                <?php $canEditRole = !$isImmutableRootRole && ((((int) ($role['can_manage_root_roles'] ?? 0) !== 1) || can_manage_root_roles())); ?>
                 <form method="post" class="form-grid" style="margin-bottom: 16px;">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="update-role">
@@ -733,7 +746,7 @@ if ($page === 'roles') {
                         <?php endforeach; ?>
                     </div>
                     <?php if ((int) ($role['can_manage_root_roles'] ?? 0) === 1): ?>
-                        <div style="flex-basis: 100%;" class="muted">Ta rola ma wewnętrzne uprawnienie Root SuperAdmin do przypisywania ról `SuperAdmin` i `Root SuperAdmin`. To uprawnienie nie jest edytowane z poziomu formularza.</div>
+                        <div style="flex-basis: 100%;" class="muted">Rola Root SuperAdmin jest wbudowana i niemodyfikowalna. Uprawnienia są zawsze aktywne.</div>
                     <?php endif; ?>
                     <div class="actions" style="flex-basis: 100%;">
                         <?php if ($canEditRole): ?>
@@ -1993,6 +2006,272 @@ if ($page === 'equipment-form-meta') {
     exit;
 }
 
+
+if ($page === 'equipment-export-csv') {
+    require_csv_export();
+
+    $rows = query_all(
+        'SELECT e.*, c.name AS category_name, c.slug AS category_slug, c.code_prefix AS category_code_prefix,
+                l.name AS location_name, l.slug AS location_slug,
+                lp.name AS place_name, lp.slug AS place_slug,
+                parent.inventory_code AS parent_inventory_code,
+                creator.username AS created_by_username, updater.username AS updated_by_username,
+                creator.display_name AS created_by_name, updater.display_name AS updated_by_name,
+                (SELECT COUNT(*) FROM equipment_images ei WHERE ei.equipment_id = e.id) AS images_count,
+                (SELECT COUNT(*) FROM equipment_tasks et WHERE et.equipment_id = e.id) AS tasks_count
+         FROM equipment e
+         JOIN categories c ON c.id = e.category_id
+         LEFT JOIN locations l ON l.id = e.location_id
+         LEFT JOIN location_places lp ON lp.id = e.location_place_id
+         LEFT JOIN equipment parent ON parent.id = e.parent_equipment_id
+         JOIN users creator ON creator.id = e.created_by
+         JOIN users updater ON updater.id = e.updated_by
+         ORDER BY e.updated_at DESC, e.inventory_code ASC'
+    );
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="equipment-export-' . date('Ymd-His') . '.csv"');
+
+    $out = fopen('php://output', 'wb');
+    if ($out === false) {
+        http_response_code(500);
+        exit('Nie udało się wygenerować pliku CSV.');
+    }
+
+    $headers = [
+        'inventory_code', 'title', 'category_name', 'category_slug', 'category_code_prefix', 'manufacturer', 'model', 'production_year',
+        'condition_status_name', 'condition_status_slug', 'ownership_status_name', 'ownership_status_slug',
+        'location_name', 'location_slug', 'place_name', 'place_slug', 'location_text',
+        'barcode_value', 'notes', 'parent_inventory_code', 'inventory_code_manual_override', 'qr_token',
+        'created_at', 'updated_at', 'created_by_username', 'created_by_name', 'updated_by_username', 'updated_by_name',
+        'images_count', 'tasks_count'
+    ];
+    fputcsv($out, $headers);
+
+    foreach ($rows as $row) {
+        fputcsv($out, [
+            csv_value($row['inventory_code'] ?? ''),
+            csv_value($row['title'] ?? ''),
+            csv_value($row['category_name'] ?? ''),
+            csv_value($row['category_slug'] ?? ''),
+            csv_value($row['category_code_prefix'] ?? ''),
+            csv_value($row['manufacturer'] ?? ''),
+            csv_value($row['model'] ?? ''),
+            csv_value((string) ($row['production_year'] ?? '')),
+            csv_value(condition_label((string) ($row['condition_status'] ?? ''))),
+            csv_value($row['condition_status'] ?? ''),
+            csv_value(ownership_label((string) ($row['ownership_status'] ?? ''))),
+            csv_value($row['ownership_status'] ?? ''),
+            csv_value($row['location_name'] ?? ''),
+            csv_value($row['location_slug'] ?? ''),
+            csv_value($row['place_name'] ?? ''),
+            csv_value($row['place_slug'] ?? ''),
+            csv_value($row['location_text'] ?? ''),
+            csv_value($row['barcode_value'] ?? ''),
+            csv_value($row['notes'] ?? ''),
+            csv_value($row['parent_inventory_code'] ?? ''),
+            (int) ($row['inventory_code_manual_override'] ?? 0),
+            csv_value($row['qr_token'] ?? ''),
+            csv_value($row['created_at'] ?? ''),
+            csv_value($row['updated_at'] ?? ''),
+            csv_value($row['created_by_username'] ?? ''),
+            csv_value($row['created_by_name'] ?? ''),
+            csv_value($row['updated_by_username'] ?? ''),
+            csv_value($row['updated_by_name'] ?? ''),
+            (int) ($row['images_count'] ?? 0),
+            (int) ($row['tasks_count'] ?? 0),
+        ]);
+    }
+
+    fclose($out);
+    audit_log((int) current_user()['id'], 'equipment', 0, 'export_equipment_csv', ['rows' => count($rows)]);
+    exit;
+}
+
+if ($page === 'equipment-import-csv') {
+    require_csv_import();
+
+    if (!is_post()) {
+        redirect_to('index.php?page=equipment-list');
+    }
+    verify_csrf();
+
+    if (!isset($_FILES['csv_file']) || (int) ($_FILES['csv_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        flash('error', 'Nie udało się wczytać pliku CSV.');
+        redirect_to('index.php?page=equipment-list');
+    }
+
+    $tmpPath = (string) ($_FILES['csv_file']['tmp_name'] ?? '');
+    $handle = fopen($tmpPath, 'rb');
+    if ($handle === false) {
+        flash('error', 'Nie udało się otworzyć pliku CSV.');
+        redirect_to('index.php?page=equipment-list');
+    }
+
+    $header = fgetcsv($handle);
+    if (!is_array($header)) {
+        fclose($handle);
+        flash('error', 'Plik CSV jest pusty lub uszkodzony.');
+        redirect_to('index.php?page=equipment-list');
+    }
+
+    $headerMap = [];
+    foreach ($header as $i => $column) {
+        $headerMap[trim((string) $column)] = (int) $i;
+    }
+
+    $requiredColumns = ['inventory_code', 'title', 'category_name'];
+    foreach ($requiredColumns as $required) {
+        if (!array_key_exists($required, $headerMap)) {
+            fclose($handle);
+            flash('error', 'Brak wymaganej kolumny: ' . $required . '.');
+            redirect_to('index.php?page=equipment-list');
+        }
+    }
+
+    $current = current_user();
+    $imported = 0;
+    $updated = 0;
+    $conflicts = [];
+    $pendingParents = [];
+    $line = 1;
+
+    while (($data = fgetcsv($handle)) !== false) {
+        $line++;
+        $col = static function (array $row, array $map, string $name): string {
+            if (!array_key_exists($name, $map)) {
+                return '';
+            }
+            return trim((string) ($row[$map[$name]] ?? ''));
+        };
+
+        $inventoryCode = $col($data, $headerMap, 'inventory_code');
+        $title = $col($data, $headerMap, 'title');
+        $categoryName = $col($data, $headerMap, 'category_name');
+        if ($inventoryCode === '' || $title === '' || $categoryName === '') {
+            $conflicts[] = 'Wiersz ' . $line . ': brak wymaganych pól (inventory_code/title/category_name).';
+            continue;
+        }
+
+        try {
+            $categoryId = ensure_category_for_import(
+                $categoryName,
+                $col($data, $headerMap, 'category_slug'),
+                $col($data, $headerMap, 'category_code_prefix')
+            );
+            $conditionSlug = ensure_dictionary_entry_for_import(
+                'condition_statuses',
+                $col($data, $headerMap, 'condition_status_name'),
+                $col($data, $headerMap, 'condition_status_slug') !== '' ? $col($data, $headerMap, 'condition_status_slug') : 'inventory'
+            );
+            $ownershipSlug = ensure_dictionary_entry_for_import(
+                'ownership_statuses',
+                $col($data, $headerMap, 'ownership_status_name'),
+                $col($data, $headerMap, 'ownership_status_slug') !== '' ? $col($data, $headerMap, 'ownership_status_slug') : 'unknown'
+            );
+
+            $locationId = null;
+            $locationName = $col($data, $headerMap, 'location_name');
+            $locationSlug = $col($data, $headerMap, 'location_slug');
+            if ($locationName !== '' || $locationSlug !== '') {
+                $locationId = ensure_location_for_import($locationName !== '' ? $locationName : $locationSlug, $locationSlug);
+            }
+
+            $placeId = null;
+            $placeName = $col($data, $headerMap, 'place_name');
+            $placeSlug = $col($data, $headerMap, 'place_slug');
+            if ($locationId !== null && ($placeName !== '' || $placeSlug !== '')) {
+                $placeId = ensure_location_place_for_import($locationId, $placeName !== '' ? $placeName : $placeSlug, $placeSlug);
+            }
+
+            $locationText = $col($data, $headerMap, 'location_text');
+            if ($locationText === '' && $locationName !== '') {
+                $locationText = $locationName . ($placeName !== '' ? ' / ' . $placeName : '');
+            }
+
+            $payload = [
+                'category_id' => $categoryId,
+                'title' => $title,
+                'manufacturer' => $col($data, $headerMap, 'manufacturer'),
+                'model' => $col($data, $headerMap, 'model'),
+                'production_year' => $col($data, $headerMap, 'production_year') !== '' ? (int) $col($data, $headerMap, 'production_year') : null,
+                'condition_status' => $conditionSlug,
+                'ownership_status' => $ownershipSlug,
+                'location_id' => $locationId,
+                'location_place_id' => $placeId,
+                'location_text' => $locationText,
+                'barcode_value' => $col($data, $headerMap, 'barcode_value'),
+                'notes' => $col($data, $headerMap, 'notes'),
+                'inventory_code_manual_override' => $col($data, $headerMap, 'inventory_code_manual_override') === '1' ? 1 : 0,
+                'inventory_code' => $inventoryCode,
+                'updated_by' => (int) $current['id'],
+            ];
+
+            $existing = query_one('SELECT id FROM equipment WHERE inventory_code = :inventory_code', ['inventory_code' => $inventoryCode]);
+            if ($existing) {
+                $payload['id'] = (int) $existing['id'];
+                execute_sql(
+                    'UPDATE equipment SET category_id = :category_id, title = :title, manufacturer = :manufacturer, model = :model, production_year = :production_year, condition_status = :condition_status, ownership_status = :ownership_status, location_id = :location_id, location_place_id = :location_place_id, location_text = :location_text, barcode_value = :barcode_value, notes = :notes, inventory_code_manual_override = :inventory_code_manual_override, updated_by = :updated_by WHERE id = :id',
+                    $payload
+                );
+                $equipmentId = (int) $existing['id'];
+                $updated++;
+            } else {
+                $payload['created_by'] = (int) $current['id'];
+                $payload['qr_token'] = strtolower(bin2hex(random_bytes(8)));
+                execute_sql(
+                    'INSERT INTO equipment (category_id, location_id, location_place_id, inventory_code, inventory_code_manual_override, title, manufacturer, model, production_year, condition_status, ownership_status, location_text, barcode_value, qr_token, notes, created_by, updated_by) VALUES (:category_id, :location_id, :location_place_id, :inventory_code, :inventory_code_manual_override, :title, :manufacturer, :model, :production_year, :condition_status, :ownership_status, :location_text, :barcode_value, :qr_token, :notes, :created_by, :updated_by)',
+                    $payload
+                );
+                $equipmentId = (int) db()->lastInsertId();
+                $imported++;
+            }
+
+            $parentCode = $col($data, $headerMap, 'parent_inventory_code');
+            if ($parentCode !== '') {
+                $pendingParents[] = ['equipment_id' => $equipmentId, 'parent_inventory_code' => $parentCode, 'line' => $line];
+            }
+        } catch (Throwable $exception) {
+            $conflicts[] = 'Wiersz ' . $line . ': ' . $exception->getMessage();
+        }
+    }
+
+    fclose($handle);
+
+    foreach ($pendingParents as $parentLink) {
+        $parent = query_one('SELECT id FROM equipment WHERE inventory_code = :inventory_code', ['inventory_code' => $parentLink['parent_inventory_code']]);
+        if (!$parent) {
+            $conflicts[] = 'Wiersz ' . $parentLink['line'] . ': nie znaleziono parent_inventory_code=' . $parentLink['parent_inventory_code'] . '.';
+            continue;
+        }
+        if ((int) $parent['id'] === (int) $parentLink['equipment_id']) {
+            $conflicts[] = 'Wiersz ' . $parentLink['line'] . ': sprzęt nie może być własnym parentem.';
+            continue;
+        }
+        execute_sql(
+            'UPDATE equipment SET parent_equipment_id = :parent_id WHERE id = :id',
+            ['parent_id' => (int) $parent['id'], 'id' => (int) $parentLink['equipment_id']]
+        );
+    }
+
+    audit_log((int) $current['id'], 'equipment', 0, 'import_equipment_csv', [
+        'imported' => $imported,
+        'updated' => $updated,
+        'conflicts' => count($conflicts),
+    ]);
+
+    if ($conflicts !== []) {
+        $preview = implode(' | ', array_slice($conflicts, 0, 4));
+        if (count($conflicts) > 4) {
+            $preview .= ' | ...';
+        }
+        flash('error', 'Import zakończony z konfliktami (' . count($conflicts) . '): ' . $preview);
+    }
+
+    flash('success', 'Import CSV zakończony. Dodano: ' . $imported . ', zaktualizowano: ' . $updated . '.');
+    redirect_to('index.php?page=equipment-list');
+}
+
 // Lista sprzętu i filtrowanie.
 if ($page === 'equipment-list') {
     $filters = [
@@ -2062,9 +2341,23 @@ if ($page === 'equipment-list') {
                 <h2>Lista sprzętu</h2>
                 <p class="muted">Widok roboczy dla katalogowania, statusów i podstawowych relacji.</p>
             </div>
-            <?php if (can_edit_records()): ?>
-                <a class="button primary" href="index.php?page=equipment-new">Dodaj sprzęt</a>
-            <?php endif; ?>
+            <div class="actions">
+                <?php if (can_export_csv()): ?>
+                    <a class="button" href="index.php?page=equipment-export-csv">Eksport CSV</a>
+                <?php endif; ?>
+                <?php if (can_import_csv()): ?>
+                    <form method="post" action="index.php?page=equipment-import-csv" enctype="multipart/form-data" class="inline-form">
+                        <?= csrf_field() ?>
+                        <label class="button" style="cursor: pointer;">
+                            Import CSV
+                            <input type="file" name="csv_file" accept=".csv,text/csv" required onchange="this.form.submit()" style="display:none;">
+                        </label>
+                    </form>
+                <?php endif; ?>
+                <?php if (can_edit_records()): ?>
+                    <a class="button primary" href="index.php?page=equipment-new">Dodaj sprzęt</a>
+                <?php endif; ?>
+            </div>
         </div>
         <form method="get" class="form-grid" style="margin-bottom: 18px;">
             <input type="hidden" name="page" value="equipment-list">

@@ -68,6 +68,8 @@ function role_defaults(): array
             'can_manage_settings' => 1,
             'can_manage_dictionaries' => 1,
             'can_view_audit_history' => 1,
+            'can_export_csv' => 1,
+            'can_import_csv' => 1,
             'is_system' => 1,
         ],
         [
@@ -87,6 +89,8 @@ function role_defaults(): array
             'can_manage_settings' => 1,
             'can_manage_dictionaries' => 1,
             'can_view_audit_history' => 1,
+            'can_export_csv' => 1,
+            'can_import_csv' => 1,
             'is_system' => 1,
         ],
         [
@@ -106,6 +110,8 @@ function role_defaults(): array
             'can_manage_settings' => 1,
             'can_manage_dictionaries' => 0,
             'can_view_audit_history' => 1,
+            'can_export_csv' => 1,
+            'can_import_csv' => 0,
             'is_system' => 1,
         ],
         [
@@ -125,6 +131,8 @@ function role_defaults(): array
             'can_manage_settings' => 0,
             'can_manage_dictionaries' => 0,
             'can_view_audit_history' => 0,
+            'can_export_csv' => 0,
+            'can_import_csv' => 0,
             'is_system' => 1,
         ],
     ];
@@ -293,6 +301,8 @@ function audit_action_label(string $action): string
         'create_role' => 'Dodano rolę',
         'update_role' => 'Zmieniono rolę',
         'delete_role' => 'Usunięto rolę',
+        'export_equipment_csv' => 'Wyeksportowano CSV sprzętu',
+        'import_equipment_csv' => 'Zaimportowano CSV sprzętu',
         default => $action,
     };
 }
@@ -360,6 +370,134 @@ function can_change_task_status(): bool
 function can_delete_tasks(): bool
 {
     return current_user_can('can_delete_tasks');
+}
+
+function can_export_csv(): bool
+{
+    return current_user_can('can_export_csv');
+}
+
+function can_import_csv(): bool
+{
+    return current_user_can('can_import_csv');
+}
+
+function csv_value(?string $value): string
+{
+    $value = (string) $value;
+    if ($value === '') {
+        return '';
+    }
+    return trim(str_replace(["\r", "\n", "\t"], ' ', $value));
+}
+
+function csv_slug_or_fallback(string $preferred, string $fallback): string
+{
+    $slug = slugify($preferred);
+    if ($slug !== '') {
+        return $slug;
+    }
+    return slugify($fallback);
+}
+
+function ensure_category_for_import(string $name, string $slug, string $codePrefix): int
+{
+    $slug = csv_slug_or_fallback($slug, $name);
+    $codePrefix = normalize_category_code($codePrefix !== '' ? $codePrefix : suggested_category_code($name));
+
+    $existingBySlug = $slug !== ''
+        ? query_one('SELECT id, code_prefix FROM categories WHERE slug = :slug', ['slug' => $slug])
+        : null;
+    if ($existingBySlug) {
+        if (normalize_category_code((string) ($existingBySlug['code_prefix'] ?? '')) !== $codePrefix && !category_code_in_use($codePrefix, (int) $existingBySlug['id'])) {
+            execute_sql('UPDATE categories SET code_prefix = :code_prefix WHERE id = :id', ['code_prefix' => $codePrefix, 'id' => (int) $existingBySlug['id']]);
+            refresh_inventory_dictionary_cache('categories');
+        }
+        return (int) $existingBySlug['id'];
+    }
+
+    if ($slug === '') {
+        $slug = 'kategoria-' . strtolower(bin2hex(random_bytes(4)));
+    }
+
+    if (category_code_in_use($codePrefix)) {
+        $suffix = 1;
+        do {
+            $codePrefix = normalize_category_code(substr($codePrefix, 0, 2) . (string) ($suffix % 10));
+            $suffix++;
+        } while (category_code_in_use($codePrefix));
+    }
+
+    execute_sql(
+        'INSERT INTO categories (name, slug, code_prefix) VALUES (:name, :slug, :code_prefix)',
+        ['name' => $name !== '' ? $name : $slug, 'slug' => $slug, 'code_prefix' => $codePrefix]
+    );
+    refresh_inventory_dictionary_cache('categories');
+    return (int) db()->lastInsertId();
+}
+
+function ensure_dictionary_entry_for_import(string $table, string $name, string $slug): string
+{
+    $slug = csv_slug_or_fallback($slug, $name);
+    if ($slug === '') {
+        throw new RuntimeException('Nie można ustalić sluga dla słownika: ' . $table);
+    }
+
+    $existing = query_one(sprintf('SELECT slug FROM %s WHERE slug = :slug', $table), ['slug' => $slug]);
+    if ($existing) {
+        return $slug;
+    }
+
+    $maxSort = (int) (query_one(sprintf('SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM %s', $table))['max_sort'] ?? 0);
+    execute_sql(
+        sprintf('INSERT INTO %s (name, slug, sort_order) VALUES (:name, :slug, :sort_order)', $table),
+        ['name' => $name !== '' ? $name : $slug, 'slug' => $slug, 'sort_order' => $maxSort + 10]
+    );
+    refresh_inventory_dictionary_cache($table);
+    return $slug;
+}
+
+function ensure_location_for_import(string $name, string $slug): int
+{
+    $slug = csv_slug_or_fallback($slug, $name);
+    $existing = $slug !== '' ? query_one('SELECT id FROM locations WHERE slug = :slug', ['slug' => $slug]) : null;
+    if ($existing) {
+        return (int) $existing['id'];
+    }
+
+    if ($name === '') {
+        throw new RuntimeException('Brak nazwy lokalizacji.');
+    }
+
+    if ($slug === '') {
+        $slug = 'lokalizacja-' . strtolower(bin2hex(random_bytes(4)));
+    }
+    execute_sql('INSERT INTO locations (name, slug) VALUES (:name, :slug)', ['name' => $name, 'slug' => $slug]);
+    return (int) db()->lastInsertId();
+}
+
+function ensure_location_place_for_import(int $locationId, string $name, string $slug): int
+{
+    $slug = csv_slug_or_fallback($slug, $name);
+    $existing = $slug !== ''
+        ? query_one('SELECT id FROM location_places WHERE location_id = :location_id AND slug = :slug', ['location_id' => $locationId, 'slug' => $slug])
+        : null;
+    if ($existing) {
+        return (int) $existing['id'];
+    }
+
+    if ($name === '') {
+        throw new RuntimeException('Brak nazwy miejsca w lokalizacji.');
+    }
+
+    if ($slug === '') {
+        $slug = 'miejsce-' . strtolower(bin2hex(random_bytes(4)));
+    }
+    execute_sql(
+        'INSERT INTO location_places (location_id, name, slug) VALUES (:location_id, :name, :slug)',
+        ['location_id' => $locationId, 'name' => $name, 'slug' => $slug]
+    );
+    return (int) db()->lastInsertId();
 }
 
 function slugify(string $value): string
@@ -891,6 +1029,8 @@ function ensure_inventory_schema(): void
             can_manage_settings TINYINT(1) NOT NULL DEFAULT 0,
             can_manage_dictionaries TINYINT(1) NOT NULL DEFAULT 0,
             can_view_audit_history TINYINT(1) NOT NULL DEFAULT 0,
+            can_export_csv TINYINT(1) NOT NULL DEFAULT 0,
+            can_import_csv TINYINT(1) NOT NULL DEFAULT 0,
             is_system TINYINT(1) NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )'
@@ -943,8 +1083,8 @@ function ensure_inventory_schema(): void
     if (!$roleRowsExist) {
         foreach (role_defaults() as $role) {
             execute_sql(
-                'INSERT INTO roles (name, slug, sort_order, can_manage_users, can_manage_roles, can_manage_root_roles, can_edit_records, can_upload_images, can_delete_images, can_create_tasks, can_update_tasks, can_change_task_status, can_delete_tasks, can_manage_settings, can_manage_dictionaries, can_view_audit_history, is_system)
-                 VALUES (:name, :slug, :sort_order, :can_manage_users, :can_manage_roles, :can_manage_root_roles, :can_edit_records, :can_upload_images, :can_delete_images, :can_create_tasks, :can_update_tasks, :can_change_task_status, :can_delete_tasks, :can_manage_settings, :can_manage_dictionaries, :can_view_audit_history, :is_system)',
+                'INSERT INTO roles (name, slug, sort_order, can_manage_users, can_manage_roles, can_manage_root_roles, can_edit_records, can_upload_images, can_delete_images, can_create_tasks, can_update_tasks, can_change_task_status, can_delete_tasks, can_manage_settings, can_manage_dictionaries, can_view_audit_history, can_export_csv, can_import_csv, is_system)
+                 VALUES (:name, :slug, :sort_order, :can_manage_users, :can_manage_roles, :can_manage_root_roles, :can_edit_records, :can_upload_images, :can_delete_images, :can_create_tasks, :can_update_tasks, :can_change_task_status, :can_delete_tasks, :can_manage_settings, :can_manage_dictionaries, :can_view_audit_history, :can_export_csv, :can_import_csv, :is_system)',
                 $role
             );
         }
@@ -959,6 +1099,8 @@ function ensure_inventory_schema(): void
         'can_change_task_status' => 'ALTER TABLE roles ADD COLUMN can_change_task_status TINYINT(1) NOT NULL DEFAULT 0 AFTER can_update_tasks',
         'can_delete_tasks' => 'ALTER TABLE roles ADD COLUMN can_delete_tasks TINYINT(1) NOT NULL DEFAULT 0 AFTER can_change_task_status',
         'can_view_audit_history' => 'ALTER TABLE roles ADD COLUMN can_view_audit_history TINYINT(1) NOT NULL DEFAULT 0 AFTER can_manage_dictionaries',
+        'can_export_csv' => 'ALTER TABLE roles ADD COLUMN can_export_csv TINYINT(1) NOT NULL DEFAULT 0 AFTER can_view_audit_history',
+        'can_import_csv' => 'ALTER TABLE roles ADD COLUMN can_import_csv TINYINT(1) NOT NULL DEFAULT 0 AFTER can_export_csv',
     ];
     $addedRoleColumns = false;
     foreach ($roleColumns as $columnName => $sql) {
@@ -984,7 +1126,9 @@ function ensure_inventory_schema(): void
                      can_update_tasks = :can_update_tasks,
                      can_change_task_status = :can_change_task_status,
                      can_delete_tasks = :can_delete_tasks,
-                     can_view_audit_history = :can_view_audit_history
+                     can_view_audit_history = :can_view_audit_history,
+                     can_export_csv = :can_export_csv,
+                     can_import_csv = :can_import_csv
                  WHERE slug = :slug AND is_system = 1',
                 [
                     'slug' => $defaultRole['slug'],
@@ -996,6 +1140,8 @@ function ensure_inventory_schema(): void
                     'can_change_task_status' => $defaultRole['can_change_task_status'],
                     'can_delete_tasks' => $defaultRole['can_delete_tasks'],
                     'can_view_audit_history' => $defaultRole['can_view_audit_history'],
+                    'can_export_csv' => $defaultRole['can_export_csv'],
+                    'can_import_csv' => $defaultRole['can_import_csv'],
                 ]
             );
         }
