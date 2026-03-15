@@ -2067,23 +2067,9 @@ if ($page === 'item-label') {
         <title><?= h($item['inventory_code']) ?> | Etykieta</title>
         <link rel="stylesheet" href="assets/style.css">
     </head>
-    <body>
-    <main class="label-shell">
-        <div class="print-actions">
-            <button class="button primary" type="button" onclick="window.print()">Drukuj</button>
-            <a class="button" href="index.php?page=item&id=<?= (int) $item['id'] ?>">Wróć do rekordu</a>
-        </div>
-        <section class="panel label-card">
-            <div class="qr-svg"><?= qr_svg_markup($qrUrl, 260) ?></div>
-            <div>
-                <div class="badge"><?= h($item['category_name']) ?></div>
-                <h1 style="margin: 12px 0 10px; font-size: 2rem;"><?= h($item['inventory_code']) ?></h1>
-                <h2 style="margin: 0 0 10px;"><?= h($item['title']) ?></h2>
-                <p class="muted" style="margin: 0 0 14px;"><?= h($item['manufacturer']) ?> / <?= h($item['model']) ?></p>
-                <p style="margin: 0 0 12px;"><strong>URL:</strong><br><?= h($qrUrl) ?></p>
-                <p style="margin: 0;"><strong>Lokalizacja:</strong><br><?= h(location_label($item) ?: 'Brak') ?></p>
-            </div>
-        </section>
+    <body class="label-print-page">
+    <main class="label-print-shell">
+        <?= qr_label_markup($qrUrl, (string) $item['inventory_code'], 320) ?>
     </main>
     </body>
     </html>
@@ -2693,7 +2679,7 @@ if ($page === 'item') {
                     <div style="flex-basis: 100%;"><label>Notatki</label><div><?= nl2br(h($item['notes'])) ?></div></div>
                 </div>
                 <div class="qr-block" style="margin-top: 18px;">
-                    <div class="qr-svg"><?= qr_svg_markup($qrUrl, 220) ?></div>
+                    <?= qr_label_markup($qrUrl, (string) $item['inventory_code'], 220) ?>
                     <div>
                         <label>URL dla QR</label>
                         <div><a href="<?= h($qrUrl) ?>"><?= h($qrUrl) ?></a></div>

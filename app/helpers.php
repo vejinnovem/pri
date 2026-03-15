@@ -749,6 +749,15 @@ function qr_svg_markup(string $content, int $size = 220): string
     return $writer->writeString($content);
 }
 
+function qr_label_markup(string $content, string $inventoryCode, int $size = 220): string
+{
+    return sprintf(
+        '<div class="qr-label"><div class="qr-svg">%s</div><div class="qr-label-code">%s</div></div>',
+        qr_svg_markup($content, $size),
+        h($inventoryCode)
+    );
+}
+
 function create_image_resource(string $sourcePath, string $mime): GdImage|false
 {
     return match ($mime) {

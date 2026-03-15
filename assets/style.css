@@ -430,6 +430,14 @@ textarea {
     max-width: 220px;
 }
 
+.qr-label {
+    width: 100%;
+    max-width: 240px;
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+}
+
 .qr-svg svg {
     width: 100%;
     height: auto;
@@ -437,6 +445,19 @@ textarea {
     border-radius: 18px;
     background: #fff;
     padding: 10px;
+}
+
+.qr-label-code {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: #fff;
+    color: #111;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
 }
 
 .qr-block a,
@@ -461,6 +482,45 @@ textarea {
     display: flex;
     gap: 12px;
     margin-bottom: 16px;
+}
+
+.label-print-page {
+    margin: 0;
+    background: #fff;
+}
+
+.label-print-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: #fff;
+}
+
+.label-print-shell .qr-label {
+    max-width: 6cm;
+    gap: 0.18cm;
+}
+
+.label-print-shell .qr-svg {
+    max-width: 6cm;
+}
+
+.label-print-shell .qr-svg svg {
+    border-radius: 0;
+    padding: 0.18cm;
+    border: 1px solid #000;
+}
+
+.label-print-shell .qr-label-code {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #000;
+    font-size: 0.45cm;
+    font-weight: 700;
+    letter-spacing: 0.04cm;
 }
 
 .task-list {
@@ -588,6 +648,10 @@ code, pre {
 }
 
 @media print {
+    @page {
+        margin: 0;
+    }
+
     body {
         background: #fff;
         color: #000;
@@ -607,5 +671,10 @@ code, pre {
         box-shadow: none;
         border-color: #bbb;
         background: #fff;
+    }
+
+    .label-print-shell {
+        min-height: auto;
+        padding: 0;
     }
 }
