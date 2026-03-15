@@ -2038,6 +2038,8 @@ if ($page === 'equipment-export-csv') {
         exit('Nie udało się wygenerować pliku CSV.');
     }
 
+    fwrite($out, "\xEF\xBB\xBF");
+
     $headers = [
         'inventory_code', 'title', 'category_name', 'category_slug', 'category_code_prefix', 'manufacturer', 'model', 'production_year',
         'condition_status_name', 'condition_status_slug', 'ownership_status_name', 'ownership_status_slug',
@@ -2117,7 +2119,7 @@ if ($page === 'equipment-import-csv') {
 
     $headerMap = [];
     foreach ($header as $i => $column) {
-        $headerMap[trim((string) $column)] = (int) $i;
+        $headerMap[trim(csv_strip_utf8_bom((string) $column))] = (int) $i;
     }
 
     $requiredColumns = ['inventory_code', 'title', 'category_name'];

@@ -391,6 +391,11 @@ function csv_value(?string $value): string
     return trim(str_replace(["\r", "\n", "\t"], ' ', $value));
 }
 
+function csv_strip_utf8_bom(string $value): string
+{
+    return preg_replace('/^\xEF\xBB\xBF/u', '', $value) ?? $value;
+}
+
 function csv_slug_or_fallback(string $preferred, string $fallback): string
 {
     $slug = slugify($preferred);
