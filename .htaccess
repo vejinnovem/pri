@@ -1,0 +1,14 @@
+Options -Indexes
+
+php_value upload_max_filesize 8M
+php_value post_max_size 8M
+php_value max_file_uploads 20
+
+<FilesMatch "^(AGENTS\.md|README\.md|schema\.sql|config\.php)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^storage/ - [F,L]
+</IfModule>

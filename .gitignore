@@ -1,0 +1,12 @@
+AGENTS.md
+config.php
+storage/*
+!storage/.gitkeep
+!storage/sessions/
+storage/sessions/*
+!storage/sessions/.gitkeep
+uploads/*
+!uploads/.gitkeep
+!uploads/.htaccess
+pressreset-backup-*.tar.gz
+.DS_Store
