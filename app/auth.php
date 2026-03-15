@@ -113,3 +113,22 @@ function require_settings_access(): void
         redirect_to('index.php');
     }
 }
+
+
+function require_csv_export(): void
+{
+    require_login();
+    if (!can_export_csv()) {
+        flash('error', 'Brak uprawnień do eksportu CSV.');
+        redirect_to('index.php');
+    }
+}
+
+function require_csv_import(): void
+{
+    require_login();
+    if (!can_import_csv()) {
+        flash('error', 'Brak uprawnień do importu CSV.');
+        redirect_to('index.php');
+    }
+}

@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS roles (
     can_manage_settings TINYINT(1) NOT NULL DEFAULT 0,
     can_manage_dictionaries TINYINT(1) NOT NULL DEFAULT 0,
     can_view_audit_history TINYINT(1) NOT NULL DEFAULT 0,
+    can_export_csv TINYINT(1) NOT NULL DEFAULT 0,
+    can_import_csv TINYINT(1) NOT NULL DEFAULT 0,
     is_system TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -188,12 +190,12 @@ VALUES
 ON DUPLICATE KEY UPDATE
     id = id;
 
-INSERT INTO roles (name, slug, sort_order, can_manage_users, can_manage_roles, can_manage_root_roles, can_edit_records, can_upload_images, can_delete_images, can_create_tasks, can_update_tasks, can_change_task_status, can_delete_tasks, can_manage_settings, can_manage_dictionaries, can_view_audit_history, is_system)
+INSERT INTO roles (name, slug, sort_order, can_manage_users, can_manage_roles, can_manage_root_roles, can_edit_records, can_upload_images, can_delete_images, can_create_tasks, can_update_tasks, can_change_task_status, can_delete_tasks, can_manage_settings, can_manage_dictionaries, can_view_audit_history, can_export_csv, can_import_csv, is_system)
 VALUES
-    ('Root SuperAdmin', 'root_superadmin', 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    ('SuperAdmin', 'superadmin', 20, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    ('Admin', 'admin', 30, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1),
-    ('ReadOnly', 'readonly', 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
+    ('Root SuperAdmin', 'root_superadmin', 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    ('SuperAdmin', 'superadmin', 20, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    ('Admin', 'admin', 30, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1),
+    ('ReadOnly', 'readonly', 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 ON DUPLICATE KEY UPDATE id = id;
 
 INSERT INTO locations (name, slug)
