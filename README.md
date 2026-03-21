@@ -64,13 +64,23 @@ sudo apt install -y \
 - skopiuj `config.example.php` do `config.php` i wpisz lokalne dane dostępu do bazy
 - `AGENTS.md`, `config.php`, backupy, uploady użytkowników i katalog `storage` są celowo wykluczone z repozytorium
 
-## Logowanie seed
-- SuperAdmin: `pressreset-root`
-- Hasło SuperAdmin: zapisane w `AGENTS.md`
+## Konta startowe
+- `pressreset-root` / `PR-SuperAdmin-2026!`
+- `pressreset-admin` / `PR-Admin-2026!`
+- `pressreset-view` / `PR-View-2026!`
+- konta `pressreset-admin` i `pressreset-view` wymuszają zmianę hasła przy pierwszym logowaniu
+- są to domyślne konta i hasła release `Press Reset Inventory` (`PRI`)
 
 ## Uruchomienie bazy
+- `schema.sql` tworzy lekką bazę startową z domyślnymi słownikami i placeholderami
+- `release/pressreset_inventory_alpha-release-2026-03-21.sql` to snapshot release z aktualnym stanem konfiguracji, lokalizacji i sprzętu; historia zdarzeń została w nim celowo wyczyszczona
+
 ```bash
-mysql --defaults-file=/home/ubuntu/.my.pressreset-inventory.cnf < /var/www/html/pr/schema.sql
+mysql -u root -p < /ścieżka/do/repo/schema.sql
+```
+
+```bash
+mysql -u root -p < /ścieżka/do/repo/release/pressreset_inventory_alpha-release-2026-03-21.sql
 ```
 
 ## Zakres
