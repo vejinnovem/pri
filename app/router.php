@@ -2245,9 +2245,11 @@ if ($page === 'equipment-import-csv') {
             $existing = query_one('SELECT id FROM equipment WHERE inventory_code = :inventory_code', ['inventory_code' => $inventoryCode]);
             if ($existing) {
                 $payload['id'] = (int) $existing['id'];
+                $updatePayload = $payload;
+                unset($updatePayload['inventory_code']);
                 execute_sql(
                     'UPDATE equipment SET category_id = :category_id, title = :title, manufacturer = :manufacturer, model = :model, production_year = :production_year, condition_status = :condition_status, ownership_status = :ownership_status, location_id = :location_id, location_place_id = :location_place_id, location_text = :location_text, barcode_value = :barcode_value, notes = :notes, inventory_code_manual_override = :inventory_code_manual_override, updated_by = :updated_by WHERE id = :id',
-                    $payload
+                    $updatePayload
                 );
                 $equipmentId = (int) $existing['id'];
                 $updated++;
