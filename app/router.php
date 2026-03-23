@@ -488,6 +488,8 @@ if ($page === 'settings') {
     require_settings_access();
 
     $deadlineValue = (string) app_setting('festival_deadline', app_config('festival_deadline'));
+    $qrBaseUrl = (string) app_setting('qr_base_url', '');
+    $effectiveQrBaseUrl = qr_base_url();
     $deadlineDate = '';
     $deadlineTime = '';
     if ($deadlineValue !== '') {
@@ -527,6 +529,22 @@ if ($page === 'settings') {
                     <button class="button primary" type="submit">Zapisz termin</button>
                 </div>
             </form>
+    </section>
+    <section class="panel">
+        <h2>Kody QR</h2>
+        <p class="muted">Kody QR są generowane na bieżąco. Zapisanie nowego adresu bazowego od razu przełączy wszystkie widoki i etykiety na nową domenę lub ścieżkę aplikacji. Wydrukowane wcześniej etykiety nadal trzeba będzie wydrukować ponownie.</p>
+        <form method="post" action="index.php?page=settings-save" class="form-grid">
+            <?= csrf_field() ?>
+            <input type="hidden" name="section" value="qr-base-url">
+            <div style="flex-basis: 100%;">
+                <label for="qr_base_url">Bazowy adres URL dla QR</label>
+                <input id="qr_base_url" type="url" name="qr_base_url" value="<?= h($qrBaseUrl !== '' ? $qrBaseUrl : $effectiveQrBaseUrl) ?>" placeholder="<?= h($effectiveQrBaseUrl) ?>" required>
+                <p class="muted" style="margin-top: 8px;">Przykład: <code>https://inventory.pressreset.org/pr</code>. Aktualnie używany adres: <a href="<?= h($effectiveQrBaseUrl) ?>"><?= h($effectiveQrBaseUrl) ?></a></p>
+            </div>
+            <div style="flex-basis: 100%;">
+                <button class="button primary" type="submit" onclick="return confirm('Przełączyć wszystkie generowane kody QR na nowy adres bazowy? Po zmianie trzeba wydrukować nowe etykiety.');">Zastosuj do wszystkich QR</button>
+            </div>
+        </form>
     </section>
     <section class="panel">
         <h2>Progi dashboardu</h2>
@@ -973,6 +991,33 @@ if ($page === 'settings-save') {
         set_app_settings($payload);
         audit_log($userId, 'settings', 0, 'update_dashboard_thresholds', $payload);
         flash('success', 'Zapisano progi dashboardu.');
+        redirect_to('index.php?page=settings');
+    }
+
+    if ($section === 'qr-base-url') {
+        require_settings_access();
+        $rawValue = trim((string) ($_POST['qr_base_url'] ?? ''));
+        if ($rawValue === '') {
+            flash('error', 'Bazowy adres URL dla QR jest wymagany.');
+            redirect_to('index.php?page=settings');
+        }
+
+        $normalized = rtrim($rawValue, '/');
+        if (!filter_var($normalized, FILTER_VALIDATE_URL)) {
+            flash('error', 'Podaj prawidłowy pełny adres URL dla QR.');
+            redirect_to('index.php?page=settings');
+        }
+
+        $parts = parse_url($normalized);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || empty($parts['host'])) {
+            flash('error', 'Adres URL dla QR musi zaczynać się od http:// lub https:// i zawierać domenę.');
+            redirect_to('index.php?page=settings');
+        }
+
+        set_app_settings(['qr_base_url' => $normalized]);
+        audit_log($userId, 'settings', 0, 'update_qr_base_url', ['qr_base_url' => $normalized]);
+        flash('success', 'Zmieniono bazowy adres wszystkich generowanych kodów QR. Wydrukowane etykiety trzeba odświeżyć osobno.');
         redirect_to('index.php?page=settings');
     }
 

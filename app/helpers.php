@@ -12,6 +12,7 @@ function app_setting_defaults(): array
 {
     return [
         'festival_deadline' => (string) app_config('festival_deadline'),
+        'qr_base_url' => '',
         'threshold_needs_service_warning' => '5',
         'threshold_needs_service_warning_high' => '10',
         'threshold_needs_service_danger' => '20',
@@ -277,6 +278,7 @@ function audit_action_label(string $action): string
         'update_equipment' => 'Zaktualizowano rekord sprzętu',
         'delete_equipment' => 'Usunięto rekord sprzętu',
         'refresh_qr_token' => 'Odświeżono token QR',
+        'update_qr_base_url' => 'Zmieniono bazowy adres QR',
         'upload_image' => 'Dodano zdjęcie',
         'delete_image' => 'Usunięto zdjęcie',
         'create_task' => 'Dodano zadanie',
@@ -876,11 +878,21 @@ function request_base_url(): string
     return sprintf('%s://%s%s', $scheme, $host, $base === '/' ? '' : $base);
 }
 
+function qr_base_url(): string
+{
+    $configured = trim((string) app_setting('qr_base_url', ''));
+    if ($configured !== '') {
+        return rtrim($configured, '/');
+    }
+
+    return request_base_url();
+}
+
 function qr_target_url(array $equipment): string
 {
     return sprintf(
         '%s/index.php?page=item&id=%d&qr=%s',
-        request_base_url(),
+        qr_base_url(),
         (int) $equipment['id'],
         rawurlencode((string) $equipment['qr_token'])
     );
