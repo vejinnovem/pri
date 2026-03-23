@@ -275,6 +275,7 @@ function audit_action_label(string $action): string
     return match ($action) {
         'create_equipment' => 'Dodano rekord sprzętu',
         'update_equipment' => 'Zaktualizowano rekord sprzętu',
+        'delete_equipment' => 'Usunięto rekord sprzętu',
         'refresh_qr_token' => 'Odświeżono token QR',
         'upload_image' => 'Dodano zdjęcie',
         'delete_image' => 'Usunięto zdjęcie',
@@ -326,6 +327,16 @@ function can_manage_root_roles(): bool
 function can_edit_records(): bool
 {
     return current_user_can('can_edit_records');
+}
+
+function can_delete_equipment(): bool
+{
+    $user = current_user();
+    if (!$user) {
+        return false;
+    }
+
+    return in_array((string) ($user['role'] ?? ''), ['root_superadmin', 'superadmin'], true);
 }
 
 function can_manage_settings(): bool

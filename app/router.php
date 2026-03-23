@@ -1560,6 +1560,43 @@ if ($page === 'equipment-save') {
     redirect_to('index.php?page=item&id=' . $newId);
 }
 
+if ($page === 'equipment-delete') {
+    require_login();
+    if (!can_delete_equipment()) {
+        flash('error', 'Brak uprawnień do usuwania sprzętu.');
+        redirect_to('index.php');
+    }
+    verify_csrf();
+
+    $equipmentId = (int) ($_POST['equipment_id'] ?? ($_POST['id'] ?? 0));
+    $equipment = query_one('SELECT id, inventory_code, title FROM equipment WHERE id = :id', ['id' => $equipmentId]);
+    if (!$equipment) {
+        flash('error', 'Nie znaleziono sprzętu.');
+        redirect_to('index.php?page=equipment-list');
+    }
+
+    $images = query_all('SELECT file_path FROM equipment_images WHERE equipment_id = :equipment_id', ['equipment_id' => $equipmentId]);
+    foreach ($images as $image) {
+        $relativePath = trim((string) ($image['file_path'] ?? ''));
+        if ($relativePath === '') {
+            continue;
+        }
+
+        $absolutePath = app_config('base_path') . '/' . ltrim($relativePath, '/');
+        if (is_file($absolutePath)) {
+            unlink($absolutePath);
+        }
+    }
+
+    execute_sql('DELETE FROM equipment WHERE id = :id', ['id' => $equipmentId]);
+    audit_log((int) current_user()['id'], 'equipment', $equipmentId, 'delete_equipment', [
+        'inventory_code' => (string) ($equipment['inventory_code'] ?? ''),
+        'title' => (string) ($equipment['title'] ?? ''),
+    ]);
+    flash('success', 'Rekord sprzętu został usunięty.');
+    redirect_to('index.php?page=equipment-list');
+}
+
 if ($page === 'equipment-image-upload') {
     require_login();
     if (!can_upload_images()) {
@@ -2577,6 +2614,9 @@ if ($page === 'equipment-new' || $page === 'equipment-edit') {
             </div>
             <div class="actions" style="margin-top: 16px;">
                 <button class="button primary" type="submit">Zapisz rekord</button>
+                <?php if (!$isNewEquipment && can_delete_equipment()): ?>
+                    <button class="button danger" type="submit" formaction="index.php?page=equipment-delete" formnovalidate onclick="return confirm('Usunąć ten rekord sprzętu wraz ze zdjęciami i zadaniami? Tej operacji nie da się cofnąć.');">Usuń</button>
+                <?php endif; ?>
             </div>
         </form>
         <script>
