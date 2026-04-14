@@ -2537,7 +2537,15 @@ if ($page === 'equipment-list') {
                         <td><a href="index.php?page=item&id=<?= (int) $row['id'] ?>"><?= h($row['inventory_code']) ?></a></td>
                         <td>
                             <?php if (!empty($row['image_path'])): ?>
-                                <img class="thumb" src="<?= h($row['image_path']) ?>" alt="<?= h($row['title']) ?>">
+                                <button
+                                    class="thumb-button"
+                                    type="button"
+                                    data-image-src="<?= h($row['image_path']) ?>"
+                                    data-image-alt="<?= h($row['title']) ?>"
+                                    aria-label="Powiększ zdjęcie: <?= h($row['title']) ?>"
+                                >
+                                    <img class="thumb" src="<?= h($row['image_path']) ?>" alt="<?= h($row['title']) ?>">
+                                </button>
                             <?php else: ?>
                                 <div class="thumb-placeholder">brak</div>
                             <?php endif; ?>
@@ -2553,7 +2561,64 @@ if ($page === 'equipment-list') {
                 </tbody>
             </table>
         </div>
+        <div class="image-preview-modal" id="image-preview-modal" hidden aria-hidden="true">
+            <div class="image-preview-surface" role="dialog" aria-modal="true" aria-label="Podgląd zdjęcia sprzętu">
+                <button class="image-preview-close" type="button" aria-label="Zamknij podgląd">×</button>
+                <img class="image-preview-full" id="image-preview-full" alt="">
+                <div class="image-preview-caption" id="image-preview-caption"></div>
+            </div>
+        </div>
     </section>
+    <script>
+    (function () {
+        var modal = document.getElementById('image-preview-modal');
+        var previewImage = document.getElementById('image-preview-full');
+        var previewCaption = document.getElementById('image-preview-caption');
+        var closeButton = modal ? modal.querySelector('.image-preview-close') : null;
+
+        if (!modal || !previewImage || !previewCaption || !closeButton) {
+            return;
+        }
+
+        function closePreview() {
+            modal.hidden = true;
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('image-preview-open');
+            previewImage.removeAttribute('src');
+            previewImage.alt = '';
+            previewCaption.textContent = '';
+        }
+
+        document.querySelectorAll('.thumb-button[data-image-src]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var imageSrc = button.getAttribute('data-image-src') || '';
+                var imageAlt = button.getAttribute('data-image-alt') || 'Podgląd zdjęcia sprzętu';
+                if (!imageSrc) {
+                    return;
+                }
+
+                previewImage.src = imageSrc;
+                previewImage.alt = imageAlt;
+                previewCaption.textContent = imageAlt;
+                modal.hidden = false;
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('image-preview-open');
+            });
+        });
+
+        closeButton.addEventListener('click', closePreview);
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closePreview();
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closePreview();
+            }
+        });
+    })();
+    </script>
     <?php
     render_footer();
     exit;
